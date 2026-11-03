@@ -1,0 +1,9 @@
+{
+  "host": "your-server.example.com",
+  "port": 7001,
+  "token": "change-me-client-token",
+  "defaultAgent": "main",
+  "downloadDir": ".",
+  "connectTimeoutMs": 10000,
+  "chunkSize": 262144
+}

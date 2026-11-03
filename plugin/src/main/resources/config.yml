@@ -1,0 +1,21 @@
+# AgentBridge Plugin Configuration
+host: "127.0.0.1"
+port: 7000
+apiKey: "change-me-plugin-key"
+agentId: "main"
+sandboxRoot: "."        # relative to server working dir, or absolute path
+exec:
+  enabled: true
+  timeoutMs: 30000
+  whitelist:
+    - "git"
+    - "mvn"
+    - "java"
+    - "python"
+    - "node"
+    - "npm"
+    - "dir"
+    - "echo"
+    - "type"
+chunkSize: 262144       # 256 KiB
+debug: false

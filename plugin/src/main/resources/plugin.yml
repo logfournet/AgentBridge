@@ -1,0 +1,7 @@
+name: AgentBridge
+version: '${version}'
+main: me.sfclog.agentbridge.plugin.AgentBridgePlugin
+api-version: '1.21'
+load: POSTWORLD
+authors: [sfclog]
+description: High-speed file bridge for OpenCode AI access

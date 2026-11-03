@@ -1,0 +1,11 @@
+target/
+run/
+*.log
+*.bin
+cp.txt
+.idea/
+*.iml
+
+# local configs with real credentials
+client.json
+server.json
