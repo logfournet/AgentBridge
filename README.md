@@ -117,7 +117,11 @@ Reload/restart server. Plugin sẽ tự kết nối và tự **reconnect** (back
 
 ## 3. Cấu hình client
 
-`client.json` (tự tạo cạnh file jar hoặc trỏ bằng `--config`):
+`client.json` (tự tạo cạnh file jar hoặc trỏ bằng `--config`). Mẫu có sẵn: copy `client.example.json` → `client.json` rồi sửa:
+
+```powershell
+Copy-Item client.example.json client.json
+```
 
 ```json
 {
