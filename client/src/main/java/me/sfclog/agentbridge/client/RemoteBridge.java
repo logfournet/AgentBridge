@@ -390,7 +390,14 @@ public class RemoteBridge implements AutoCloseable {
         Path tmp = Files.createTempFile("bridge-edit-", ".txt");
         try {
             readToFile(agent, remotePath, 0, 0, tmp);
-            String content = Files.readString(tmp, java.nio.charset.StandardCharsets.UTF_8);
+            String content;
+            try {
+                content = Files.readString(tmp, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (java.nio.charset.CharacterCodingException e) {
+                // Never rewrite a file we cannot decode byte-faithfully.
+                throw new BridgeException(415, "Not a UTF-8 text file (" + e.getMessage()
+                        + "); use upload/download or write_file with encoding=base64 instead");
+            }
 
             int count = 0;
             int idx = 0;

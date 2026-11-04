@@ -80,6 +80,8 @@ public class BukkitConsoleDispatcher implements ConsoleService.Dispatcher {
     static String stripFormatting(String s) {
         if (s == null || s.isEmpty()) return s;
         String out = s.replaceAll("\u001B\\[[0-9;]*[A-Za-z]", "");
+        // Paper's console logger drops the ESC byte but keeps the "…[33m" tail.
+        out = out.replaceAll("\\[(?:[0-9]{1,3}(?:;[0-9]{1,3})*)m", "");
         out = out.replaceAll("§[0-9a-fk-orx]", "");
         return out;
     }

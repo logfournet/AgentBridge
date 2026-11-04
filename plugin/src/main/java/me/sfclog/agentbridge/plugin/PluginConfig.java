@@ -22,7 +22,7 @@ public class PluginConfig {
     public long consoleTimeoutMs = 10000;
     public List<String> consoleWhitelist = List.of();
     public static final List<String> DEFAULT_CONSOLE_BLACKLIST =
-            List.of("stop", "restart", "reload", "op", "deop", "plugman");
+            List.of("stop", "restart", "reload", "op", "deop");
     public List<String> consoleBlacklist = DEFAULT_CONSOLE_BLACKLIST;
     public int chunkSize = 262144;
     public boolean debug = false;

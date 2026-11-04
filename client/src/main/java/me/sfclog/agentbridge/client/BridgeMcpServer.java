@@ -414,7 +414,12 @@ public class BridgeMcpServer {
                     }
                     if (size > MAX_TEXT_BYTES)
                         throw new IOException("File is " + size + " bytes; use encoding=base64 or download instead");
-                    return Files.readString(tmp, StandardCharsets.UTF_8);
+                    try {
+                        return Files.readString(tmp, StandardCharsets.UTF_8);
+                    } catch (java.nio.charset.CharacterCodingException e) {
+                        throw new IOException("File is not valid UTF-8 (" + e.getMessage()
+                                + "). Use encoding=base64, or download+upload to keep bytes exact.", e);
+                    }
                 } finally {
                     Files.deleteIfExists(tmp);
                 }

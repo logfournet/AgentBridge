@@ -27,6 +27,9 @@ console:
     - "reload"
     - "op"
     - "deop"
+    # "plugman" intentionally NOT blocked: dùng để load/reload plugin từ AI
+    # (console "plugman reload <Plugin>"). Bỏ dòng dưới nếu muốn chặn lại.
+    # - "plugman"
     - "plugman"
 chunkSize: 262144       # 256 KiB
 debug: false

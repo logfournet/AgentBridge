@@ -29,6 +29,8 @@ public final class AgentBridgePlugin extends JavaPlugin {
     private NioEventLoopGroup group;
     private EventExecutorGroup businessGroup;
     private int reconnectAttempt = 0;
+    /** True while the plugin is being disabled/reloaded: no logs, no reconnect. */
+    private volatile boolean shuttingDown = false;
 
     private static final int MAX_RECONNECT_DELAY = 30; // seconds
 
@@ -37,11 +39,15 @@ public final class AgentBridgePlugin extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
         pluginCfg = parseConfig();
+        shuttingDown = false;
         Log.setDebug(pluginCfg.debug);
 
         // Route common Log output to the Paper logger
         Logger plog = getLogger();
         Log.setSink((level, msg) -> {
+            // /reload, /plugman reload: the pipeline is torn down while these
+            // messages are produced - they are noise, not problems.
+            if (shuttingDown) return;
             switch (level) {
                 case "WARN"  -> plog.warning(msg);
                 case "ERROR" -> plog.severe(msg);
@@ -55,7 +61,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
                 pluginCfg.execWhitelist, pluginCfg.sandboxRoot);
         consoleService = new ConsoleService(pluginCfg.consoleEnabled, pluginCfg.consoleWhitelist,
                 pluginCfg.consoleBlacklist, pluginCfg.consoleTimeoutMs,
-                new BukkitConsoleDispatcher(this));
+                new BukkitConsoleDispatcher(this), getName());
 
         connect();
     }
@@ -82,6 +88,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
     }
 
     private void connect() {
+        shuttingDown = false;
         group = new NioEventLoopGroup(1);
         businessGroup = new DefaultEventExecutorGroup(4);
 
@@ -116,7 +123,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
                 reconnectAttempt = 0;
             } else {
                 Log.error("Failed to connect to " + pluginCfg.host + ":" + pluginCfg.port);
-                if (isEnabled()) scheduleReconnect();
+                if (!shuttingDown && isEnabled()) scheduleReconnect();
             }
         });
     }
@@ -127,7 +134,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
 
     private void onDisconnected() {
         channel = null;
-        if (isEnabled()) {
+        if (!shuttingDown && isEnabled()) {
             scheduleReconnect();
         }
     }
@@ -144,9 +151,20 @@ public final class AgentBridgePlugin extends JavaPlugin {
     }
 
     private void shutdownNetty() {
-        if (channel != null && channel.isActive()) channel.close();
-        if (businessGroup != null) businessGroup.shutdownGracefully(0, 0, TimeUnit.SECONDS);
-        if (group != null) group.shutdownGracefully(0, 0, TimeUnit.SECONDS);
+        shuttingDown = true;
+        Channel ch = channel;
+        channel = null;
+        if (ch != null) {
+            // Drain the pipeline before tearing the executors down, otherwise
+            // Netty floods the log with RejectedExecutionException on /reload.
+            ch.close().awaitUninterruptibly(3000);
+        }
+        if (businessGroup != null) {
+            businessGroup.shutdownGracefully(0, 1, TimeUnit.SECONDS).awaitUninterruptibly(2000);
+        }
+        if (group != null) {
+            group.shutdownGracefully(0, 1, TimeUnit.SECONDS).awaitUninterruptibly(2000);
+        }
     }
 
     @Override

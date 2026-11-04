@@ -107,7 +107,7 @@ console:
   enabled: true               # chạy lệnh console Minecraft (say/list/tps/...)
   timeoutMs: 10000
   whitelist: []               # rỗng = cho phép mọi lệnh trừ blacklist
-  blacklist: [stop, restart, reload, op, deop, plugman]
+  blacklist: [stop, restart, reload, op, deop]   # plugman KHÔNG bị chặn: cần để load/reload plugin
 chunkSize: 262144
 debug: false
 ```
@@ -122,7 +122,51 @@ Reload/restart server. Plugin sẽ tự kết nối và tự **reconnect** (back
 - `console.enabled`: bật/tắt chạy **lệnh console Minecraft** (dispatch qua
   `Bukkit.dispatchCommand` trên main thread, output được capture và trả về).
   `console.blacklist` luôn bị chặn — mặc định chặn `stop`, `restart`, `reload`,
-  `op`, `deop`, `plugman` để AI không tự ý tắt/khởi động lại server.
+  `op`, `deop` để AI không tự ý tắt/khởi động lại server. `plugman` **không** bị
+  chặn (cần cho việc load/reload plugin); bỏ comment trong `config.yml` nếu muốn chặn.
+- Lệnh console chạm vào chính AgentBridge (`plugman reload AgentBridge`) được
+  **trả lời ngay** rồi mới chạy sau 1,5s, vì plugin tự unload sẽ làm mất response.
+  Dùng `stat`/`agents` sau đó để xác nhận plugin đã load lại (xem log server).
+- Console được **serialize**: hai phiên AI gọi cùng lúc sẽ chạy lần lượt, không
+  lẫn output (capture dùng Log4j2 root logger của cả JVM).
+
+### Encoding & kiểu xuống dòng (UTF-8)
+
+Đã test thật trên server SMP (config có tiếng Việt + emoji):
+
+- `read_file` / `write_file` mặc định **UTF-8**, giữ nguyên **BOM** (nếu có) và
+  giữ nguyên **CRLF/LF** — round-trip `read_file` → `write_file` là **byte-exact**
+  (SHA-256 khớp 100%).
+- `edit_file` (read-modify-write) cũng byte-exact cho file UTF-8: chỉ thay đúng
+  chuỗi `old_string`, không đổi CRLF/BOM/encoding.
+- File **không phải UTF-8** (ANSI/CP1258, UTF-16, file binary như `.mv.db`):
+  `read_file` báo lỗi rõ ràng `File is not valid UTF-8 …`, `edit_file` báo
+  `Not a UTF-8 text file` — **không bao giờ ghi đè làm hỏng file**.
+  Dùng `encoding: "base64"` (đọc/ghi) hoặc `upload`/`download` để giữ byte gốc.
+- Khuyến nghị khi sửa config plugin: `edit_file` cho thay đổi nhỏ, `upload` khi
+  thay cả file từ máy local, và **luôn `download` backup** trước khi sửa lớn.
+
+### Nạp / cập nhật plugin bằng AI (upload + PlugManX)
+
+Quy trình đã test thật trên SMP (92 plugin, PlugManX):
+
+```text
+upload  local=AgentBridgePlugin.jar  remote=plugins/TenPlugin.jar
+console "plugman reload TenPlugin"        # hoặc "plugman load TenPlugin" nếu là plugin mới
+console "plugman list"                    # kiểm tra plugin đã có trong danh sách
+```
+
+- Ghi đè jar đang chạy **được** trên Linux (server đọc jar 1 lần khi load, không
+  giữ lock file) — không cần `stop` server.
+- Sau khi upload nhớ **reload**: Paper chỉ đọc jar lúc enable, đè file mà không
+  reload thì plugin vẫn chạy bản cũ.
+- AgentBridge tự reload chính nó được: lệnh được trả lời ngay rồi chạy sau 1,5s
+  (xem trên). Trong lúc reload, server log có vài dòng
+  `NoClassDefFoundError … netty …` / `event executor terminated`: **vô hại**, do
+  class loader cũ bị đóng khi thread Netty đang tắt. Agent sẽ tự kết nối lại
+  sau ~1 giây (`agents` → `smp -> AgentBridge`).
+- Muốn chắc chắn bản mới đã chạy, xem log:
+  `grep "Enabling <TenPlugin> v" logs/latest.log` (dùng `read_file`).
 
 ## 3. Cấu hình client
 
