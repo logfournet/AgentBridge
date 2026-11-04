@@ -11,6 +11,8 @@ import java.nio.file.*;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * MCP (Model Context Protocol) stdio server.
@@ -24,7 +26,7 @@ public class BridgeMcpServer {
 
     private final ClientConfig cfg;
     private final String defaultAgent;
-    private RemoteBridge bridge;
+    private volatile RemoteBridge bridge;
 
     /** Maximum bytes returned as UTF-8 text (larger files must use base64 / download). */
     private static final int MAX_TEXT_BYTES = 8 * 1024 * 1024;
@@ -80,32 +82,46 @@ public class BridgeMcpServer {
         Log.info("MCP server ready (host=" + cfg.host + ":" + cfg.port + ", agent=" + defaultAgent + ")");
         tryConnect();
 
+        // Handle requests concurrently: a slow tool call (big upload, console
+        // command, slow host) must never freeze the whole MCP session.
+        ExecutorService pool = Executors.newFixedThreadPool(4, r -> {
+            Thread t = new Thread(r, "mcp-worker");
+            t.setDaemon(true);
+            return t;
+        });
+        Object writeLock = new Object();
+
         String line;
         try {
             while ((line = in.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
-                try {
-                    JsonObject request = JsonParser.parseString(line).getAsJsonObject();
-                    JsonObject response = handleRequest(request);
-                    if (response != null) {
-                        out.write(GSON.toJson(response));
-                        out.write('\n');
-                        out.flush();
-                    }
-                } catch (Exception e) {
-                    Log.error("MCP request error: " + e.getMessage());
+                final String payload = line;
+                pool.submit(() -> {
+                    JsonObject response;
                     try {
-                        JsonObject err = errorResponse(null, -32700, "Parse error: " + e.getMessage());
-                        out.write(GSON.toJson(err));
-                        out.write('\n');
-                        out.flush();
-                    } catch (IOException ignored) {}
-                }
+                        JsonObject request = JsonParser.parseString(payload).getAsJsonObject();
+                        response = handleRequest(request);
+                    } catch (Exception e) {
+                        Log.error("MCP request error: " + e.getMessage());
+                        response = errorResponse(null, -32700, "Parse error: " + e.getMessage());
+                    }
+                    if (response == null) return;
+                    try {
+                        synchronized (writeLock) {
+                            out.write(GSON.toJson(response));
+                            out.write('\n');
+                            out.flush();
+                        }
+                    } catch (IOException e) {
+                        Log.error("MCP stdout write failed: " + e.getMessage());
+                    }
+                });
             }
         } catch (IOException e) {
             Log.error("MCP stdin read failed", e);
         } finally {
+            pool.shutdown();
             if (bridge != null) bridge.close();
         }
     }

@@ -220,9 +220,26 @@ public class RemoteBridge implements AutoCloseable {
     // Internal helpers
     // ------------------------------------------------------------------
 
-    private void requireOpen() {
-        if (channel == null || !channel.isActive())
-            throw new IllegalStateException("Not connected to AgentBridgeServer");
+    private void requireOpen() throws Exception {
+        ensureConnected();
+    }
+
+    /**
+     * Makes sure we have a live channel. If the connection dropped (server
+     * restart, network blip, idle timeout) we transparently reconnect and fail
+     * any in-flight requests instead of hanging forever.
+     */
+    private synchronized void ensureConnected() throws Exception {
+        if (closed) throw new IllegalStateException("Client closed");
+        if (channel != null && channel.isActive()) return;
+
+        // Connection is gone: fail everything that was waiting on it.
+        if (!requests.isEmpty()) {
+            IOException lost = new IOException("Connection to AgentBridgeServer lost");
+            requests.values().forEach(pr -> pr.completeExceptionally(lost));
+            requests.clear();
+        }
+        connect();
     }
 
     /** Send a one-shot request and block for the response. */
