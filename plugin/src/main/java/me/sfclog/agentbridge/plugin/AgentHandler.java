@@ -26,6 +26,7 @@ public class AgentHandler extends ChannelInboundHandlerAdapter {
     private final PluginConfig pluginCfg;
     private final FileService fileService;
     private final ExecService execService;
+    private final ConsoleService consoleService;
     private final Runnable onConnected;
     private final Runnable onDisconnected;
 
@@ -39,10 +40,12 @@ public class AgentHandler extends ChannelInboundHandlerAdapter {
     private volatile boolean connected = false;
 
     public AgentHandler(PluginConfig cfg, FileService fileService, ExecService execService,
+                        ConsoleService consoleService,
                         Runnable onConnected, Runnable onDisconnected) {
         this.pluginCfg = cfg;
         this.fileService = fileService;
         this.execService = execService;
+        this.consoleService = consoleService;
         this.onConnected = onConnected;
         this.onDisconnected = onDisconnected;
     }
@@ -101,6 +104,15 @@ public class AgentHandler extends ChannelInboundHandlerAdapter {
                 case Ops.EXISTS     -> respond(ctx, Ops.EXISTS_RES,     route, safe(() -> fileService.exists(meta.path)));
                 case Ops.MKDIR      -> respond(ctx, Ops.MKDIR_RES,      route, safe(() -> fileService.mkdir(meta.path, meta.createDirs)));
                 case Ops.EXEC       -> respond(ctx, Ops.EXEC_RES,       route, safe(() -> execService.execute(meta.command, meta.cwd, meta.timeoutMs)));
+                case Ops.CONSOLE    -> respond(ctx, Ops.CONSOLE_RES,    route, safe(() -> {
+                    if (consoleService == null) {
+                        Meta m = new Meta();
+                        m.exitCode = -1;
+                        m.stderr = "Console is not available on this agent";
+                        return m;
+                    }
+                    return consoleService.execute(meta.command, meta.timeoutMs);
+                }));
 
                 // ---- READ stream (agent streams data back to server) ----
                 case Ops.READ_START -> {

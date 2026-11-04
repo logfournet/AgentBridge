@@ -428,6 +428,10 @@ public class RemoteBridge implements AutoCloseable {
         return request(Ops.EXEC, Meta.of("agent", agent, "command", command, "cwd", cwd, "timeoutMs", timeoutMs),
                 null, timeoutMs > 0 ? timeoutMs + 5000 : timeout());
     }
+    public Meta console(String agent, String command, long timeoutMs) throws Exception {
+        return request(Ops.CONSOLE, Meta.of("agent", agent, "command", command, "timeoutMs", timeoutMs),
+                null, timeoutMs > 0 ? timeoutMs + 5000 : timeout());
+    }
     public Meta agents() throws Exception {
         return request(Ops.AGENT_LIST, Meta.of(), null, timeout());
     }

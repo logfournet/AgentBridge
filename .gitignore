@@ -9,3 +9,4 @@ cp.txt
 # local configs with real credentials
 client.json
 server.json
+dist/

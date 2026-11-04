@@ -13,6 +13,10 @@
     <name>agentbridge-client</name>
     <packaging>jar</packaging>
 
+    <properties>
+        <agentbridge.client.jar>AgentBridge</agentbridge.client.jar>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>me.sfclog</groupId>
@@ -42,7 +46,9 @@
     </dependencies>
 
     <build>
-        <finalName>AgentBridge</finalName>
+        <!-- Override with -Dagentbridge.client.jar=<name> when the default
+             file is locked by a running MCP server. -->
+        <finalName>${agentbridge.client.jar}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -302,6 +302,19 @@ public class BridgeMcpServer {
                   }
                 },
                 {
+                  "name": "console",
+                  "description": "Run a Minecraft server console command (e.g. 'say hi', 'list', 'tps') and capture its output. Requires console.enabled on the plugin.",
+                  "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                      "agent": { "type": "string" },
+                      "command": { "type": "string" },
+                      "timeoutMs": { "type": "integer" }
+                    },
+                    "required": ["command"]
+                  }
+                },
+                {
                   "name": "download",
                   "description": "Download a remote file to a local path where the MCP server runs.",
                   "inputSchema": {
@@ -466,6 +479,16 @@ public class BridgeMcpServer {
                 sb.append("exit: ").append(m.exitCode).append('\n');
                 if (m.stdout != null && !m.stdout.isEmpty()) sb.append("--- stdout ---\n").append(m.stdout).append('\n');
                 if (m.stderr != null && !m.stderr.isEmpty()) sb.append("--- stderr ---\n").append(m.stderr).append('\n');
+                return sb.toString();
+            }
+            case "console": {
+                String command = reqStr(a, "command");
+                long timeout = optLong(a, "timeoutMs", 0);
+                Meta m = bridge.console(agent, command, timeout);
+                StringBuilder sb = new StringBuilder();
+                sb.append("exit: ").append(m.exitCode).append('\n');
+                if (m.stdout != null && !m.stdout.isEmpty()) sb.append(m.stdout).append('\n');
+                if (m.stderr != null && !m.stderr.isEmpty()) sb.append("[error] ").append(m.stderr).append('\n');
                 return sb.toString();
             }
             case "download": {

@@ -17,5 +17,16 @@ exec:
     - "dir"
     - "echo"
     - "type"
+console:
+  enabled: false          # allow Minecraft console commands (say/list/tps/...)
+  timeoutMs: 10000
+  whitelist: []           # empty = every command allowed (except blacklist)
+  blacklist:
+    - "stop"
+    - "restart"
+    - "reload"
+    - "op"
+    - "deop"
+    - "plugman"
 chunkSize: 262144       # 256 KiB
 debug: false

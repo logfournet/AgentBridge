@@ -18,6 +18,12 @@ public class PluginConfig {
     public boolean execEnabled = false;
     public long execTimeoutMs = 30000;
     public List<String> execWhitelist = List.of();
+    public boolean consoleEnabled = false;
+    public long consoleTimeoutMs = 10000;
+    public List<String> consoleWhitelist = List.of();
+    public static final List<String> DEFAULT_CONSOLE_BLACKLIST =
+            List.of("stop", "restart", "reload", "op", "deop", "plugman");
+    public List<String> consoleBlacklist = DEFAULT_CONSOLE_BLACKLIST;
     public int chunkSize = 262144;
     public boolean debug = false;
 

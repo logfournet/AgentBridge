@@ -35,6 +35,10 @@ public final class Ops {
     public static final int EXEC        = 60;
     public static final int EXEC_RES    = 61;
 
+    // --- Minecraft console command (dispatched by the plugin) ---
+    public static final int CONSOLE     = 62;
+    public static final int CONSOLE_RES = 63;
+
     // --- Heartbeat ---
     public static final int PING        = 70;
     public static final int PONG        = 71;
@@ -47,6 +51,7 @@ public final class Ops {
         return op == LIST_RES || op == STAT_RES || op == DELETE_RES
             || op == MOVE_RES || op == EXISTS_RES || op == MKDIR_RES
             || op == EXEC_RES || op == ERROR || op == HELLO_OK
+            || op == CONSOLE_RES
             || op == AGENT_LIST_RES;
     }
 

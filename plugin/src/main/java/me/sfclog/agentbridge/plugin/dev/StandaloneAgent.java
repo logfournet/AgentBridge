@@ -53,7 +53,7 @@ public final class StandaloneAgent {
         NioEventLoopGroup group = new NioEventLoopGroup(1);
         DefaultEventExecutorGroup business = new DefaultEventExecutorGroup(4);
 
-        AgentHandler handler = new AgentHandler(cfg, fs, es,
+        AgentHandler handler = new AgentHandler(cfg, fs, es, null,
                 () -> Log.info("[StandaloneAgent] connected"),
                 () -> Log.info("[StandaloneAgent] disconnected"));
 

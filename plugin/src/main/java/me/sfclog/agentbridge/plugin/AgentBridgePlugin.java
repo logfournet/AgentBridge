@@ -22,6 +22,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
     private PluginConfig pluginCfg;
     private FileService fileService;
     private ExecService execService;
+    private ConsoleService consoleService;
     private AgentHandler handler;
     private Channel channel;
 
@@ -52,6 +53,9 @@ public final class AgentBridgePlugin extends JavaPlugin {
         fileService = new FileService(pluginCfg.sandboxRoot);
         execService = new ExecService(pluginCfg.execEnabled, pluginCfg.execTimeoutMs,
                 pluginCfg.execWhitelist, pluginCfg.sandboxRoot);
+        consoleService = new ConsoleService(pluginCfg.consoleEnabled, pluginCfg.consoleWhitelist,
+                pluginCfg.consoleBlacklist, pluginCfg.consoleTimeoutMs,
+                new BukkitConsoleDispatcher(this));
 
         connect();
     }
@@ -67,6 +71,11 @@ public final class AgentBridgePlugin extends JavaPlugin {
         c.execEnabled = yaml.getBoolean("exec.enabled", c.execEnabled);
         c.execTimeoutMs = yaml.getLong("exec.timeoutMs", c.execTimeoutMs);
         c.execWhitelist = yaml.getStringList("exec.whitelist");
+        c.consoleEnabled = yaml.getBoolean("console.enabled", c.consoleEnabled);
+        c.consoleTimeoutMs = yaml.getLong("console.timeoutMs", c.consoleTimeoutMs);
+        c.consoleWhitelist = yaml.getStringList("console.whitelist");
+        c.consoleBlacklist = yaml.getStringList("console.blacklist");
+        if (c.consoleBlacklist == null || c.consoleBlacklist.isEmpty()) c.consoleBlacklist = PluginConfig.DEFAULT_CONSOLE_BLACKLIST;
         c.chunkSize = yaml.getInt("chunkSize", c.chunkSize);
         c.debug = yaml.getBoolean("debug", c.debug);
         return c;
@@ -76,7 +85,7 @@ public final class AgentBridgePlugin extends JavaPlugin {
         group = new NioEventLoopGroup(1);
         businessGroup = new DefaultEventExecutorGroup(4);
 
-        handler = new AgentHandler(pluginCfg, fileService, execService,
+        handler = new AgentHandler(pluginCfg, fileService, execService, consoleService,
                 this::onConnected,
                 this::onDisconnected
         );

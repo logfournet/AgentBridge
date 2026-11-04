@@ -211,6 +211,18 @@ public class BridgeCli {
                 }
                 return m.exitCode;
             }
+            case "console": case "cmd": {
+                if (args.positional.size() < 2) {
+                    System.err.println("Usage: console <command...>");
+                    return 1;
+                }
+                String command = String.join(" ", args.positional.subList(1, args.positional.size()));
+                long timeout = args.longOpt("timeout", 0);
+                Meta m = bridge.console(agent, command, timeout);
+                if (m.stdout != null && !m.stdout.isEmpty()) System.out.println(m.stdout);
+                if (m.stderr != null && !m.stderr.isEmpty()) System.err.println(m.stderr);
+                return m.exitCode;
+            }
             case "ping": {
                 bridge.agents();
                 System.out.println("ok");
@@ -291,14 +303,15 @@ public class BridgeCli {
                   cat <path> [--offset N]       Print a file (binary-safe)
                   get <remote> [local]          Download a file
                   put <local> [remote]          Upload a file (--append, --mkdirs)
-                  write <path>                  Write stdin to a file
+                  write <path> [content]        Write a file (content or stdin)
                   edit <path> --old <a> --new <b> Replace exact text (--all)
                   stat <path>                   Show file info
                   exists <path>                 Check existence
                   rm <path> [--recursive]       Delete
                   mv <src> <dst>                Move / rename
                   mkdir <path> [--parents]      Create directory
-                  exec <command...> [--cwd d]   Run a command on the host
+                  exec <command...> [--cwd d]   Run a shell command on the host
+                  console <command...>          Run a Minecraft console command
                   ping                          Test connectivity
                   mcp                           Run MCP stdio server
                 """);

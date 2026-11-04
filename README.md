@@ -103,6 +103,11 @@ exec:
   enabled: true
   timeoutMs: 30000
   whitelist: [git, mvn, java, python, node, npm, echo, dir, type]
+console:
+  enabled: true               # chạy lệnh console Minecraft (say/list/tps/...)
+  timeoutMs: 10000
+  whitelist: []               # rỗng = cho phép mọi lệnh trừ blacklist
+  blacklist: [stop, restart, reload, op, deop, plugman]
 chunkSize: 262144
 debug: false
 ```
@@ -114,6 +119,10 @@ Reload/restart server. Plugin sẽ tự kết nối và tự **reconnect** (back
 - Mọi đường dẫn từ client đều được **sandbox** trong `sandboxRoot`; `..` bị chặn.
 - `exec.enabled`: bật/tắt chạy lệnh. `exec.whitelist`: chỉ các chương trình đầu
   tiên trong whitelist mới được chạy.
+- `console.enabled`: bật/tắt chạy **lệnh console Minecraft** (dispatch qua
+  `Bukkit.dispatchCommand` trên main thread, output được capture và trả về).
+  `console.blacklist` luôn bị chặn — mặc định chặn `stop`, `restart`, `reload`,
+  `op`, `deop`, `plugman` để AI không tự ý tắt/khởi động lại server.
 
 ## 3. Cấu hình client
 
@@ -185,7 +194,8 @@ opencode mcp list
 | `delete` | Xoá file/thư mục (`recursive`) |
 | `move` | Di chuyển / đổi tên |
 | `mkdir` | Tạo thư mục |
-| `exec` | Chạy lệnh trên host (nếu bật + whitelist) |
+| `exec` | Chạy lệnh shell trên host (nếu bật + whitelist) |
+| `console` | Chạy lệnh **console Minecraft** (`say`, `list`, `tps`…) và trả output |
 | `download` | Tải file remote về máy chạy MCP |
 | `upload` | Upload file local lên host |
 
@@ -209,6 +219,7 @@ java -jar client\target\AgentBridge.jar --config client.json --agent survival <c
 | `mv <src> <dst>` | `... mv a.txt b.txt` |
 | `mkdir <path> [--parents]` | `... mkdir logs/old --parents` |
 | `exec <cmd...>` | `... exec mvn clean package` |
+| `console <cmd...>` | `... console "say hello"` / `... console list` |
 | `ping` | `... ping` |
 
 Thêm `--host/--port/--token` để override nhanh.
