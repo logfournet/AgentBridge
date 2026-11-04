@@ -25,6 +25,12 @@ public class ConsoleService {
     private final long defaultTimeoutMs;
     private final Dispatcher dispatcher;
 
+    /**
+     * Console output is captured by tapping the JVM-wide Log4j2 root logger, so
+     * two concurrent commands would see each other's lines. Serialise them.
+     */
+    private final Object consoleLock = new Object();
+
     public ConsoleService(boolean enabled, List<String> whitelist, List<String> blacklist,
                           long defaultTimeoutMs, Dispatcher dispatcher) {
         this.enabled = enabled;
@@ -75,7 +81,10 @@ public class ConsoleService {
         }
 
         long timeout = overrideTimeoutMs > 0 ? overrideTimeoutMs : defaultTimeoutMs;
-        List<String> lines = dispatcher.dispatch(cmdFinal, timeout);
+        List<String> lines;
+        synchronized (consoleLock) {
+            lines = dispatcher.dispatch(cmdFinal, timeout);
+        }
         List<String> out = new ArrayList<>(lines == null ? List.of() : lines);
 
         m.exitCode = 0;

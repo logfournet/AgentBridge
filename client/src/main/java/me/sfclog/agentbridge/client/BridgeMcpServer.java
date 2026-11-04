@@ -81,6 +81,7 @@ public class BridgeMcpServer {
 
         Log.info("MCP server ready (host=" + cfg.host + ":" + cfg.port + ", agent=" + defaultAgent + ")");
         tryConnect();
+        startParentWatchdog();
 
         // Handle requests concurrently: a slow tool call (big upload, console
         // command, slow host) must never freeze the whole MCP session.
@@ -540,8 +541,37 @@ public class BridgeMcpServer {
         bridge.connect();
     }
 
-    private void tryConnect() {
-        try {
+    /**
+     * Exits when the parent process (the editor that spawned us) disappears, so
+     * closed OpenCode windows don't leave orphan MCP servers behind holding the
+     * jar file and RAM. Two consecutive checks are required to avoid races.
+     */
+    private void startParentWatchdog() {
+        ProcessHandle parent = ProcessHandle.current().parent().orElse(null);
+        if (parent == null) return;
+        Thread t = new Thread(() -> {
+            int misses = 0;
+            while (true) {
+                try {
+                    Thread.sleep(15_000);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                if (parent.isAlive()) {
+                    misses = 0;
+                    continue;
+                }
+                if (++misses >= 2) {
+                    Log.warn("Parent process is gone; shutting down MCP server");
+                    System.exit(0);
+                }
+            }
+        }, "agentbridge-parent-watchdog");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void tryConnect() {        try {
             ensureConnected();
             Log.info("Connected to AgentBridgeServer at " + cfg.host + ":" + cfg.port);
         } catch (Exception e) {
