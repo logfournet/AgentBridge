@@ -46,6 +46,7 @@ public class BukkitConsoleDispatcher implements ConsoleService.Dispatcher {
                     if (msg == null) return;
                     // Strip the leading "[HH:mm:ss] [Thread/LEVEL]: " noise
                     String clean = msg.replaceFirst("^\\[[^\\]]*]\\s*", "").trim();
+                    clean = stripFormatting(clean);
                     if (!clean.isEmpty()) captured.add(clean);
                 }
             };
@@ -73,5 +74,13 @@ public class BukkitConsoleDispatcher implements ConsoleService.Dispatcher {
         } catch (java.util.concurrent.TimeoutException e) {
             throw new Exception("Console command timed out after " + wait + "ms");
         }
+    }
+
+    /** Removes ANSI escape sequences and legacy {@code §} colour codes. */
+    static String stripFormatting(String s) {
+        if (s == null || s.isEmpty()) return s;
+        String out = s.replaceAll("\u001B\\[[0-9;]*[A-Za-z]", "");
+        out = out.replaceAll("§[0-9a-fk-orx]", "");
+        return out;
     }
 }
